@@ -257,6 +257,11 @@ export const zhCN: Translations = {
     failed: "子任务失败",
   },
 
+  // Errors
+  errors: {
+    streamError: "消息流式传输过程中发生错误。请重试。",
+  },
+
   // Settings
   settings: {
     title: "设置",

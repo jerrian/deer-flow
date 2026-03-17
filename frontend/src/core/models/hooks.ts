@@ -9,5 +9,14 @@ export function useModels({ enabled = true }: { enabled?: boolean } = {}) {
     enabled,
     refetchOnWindowFocus: false,
   });
+
+  // Debug logging
+  console.log("[useModels] Query state:", {
+    isLoading,
+    error: error?.message,
+    dataLength: data?.length,
+    enabled,
+  });
+
   return { models: data ?? [], isLoading, error };
 }

@@ -142,7 +142,7 @@ export function InputBox({
   const { t } = useI18n();
   const searchParams = useSearchParams();
   const [modelDialogOpen, setModelDialogOpen] = useState(false);
-  const { models } = useModels();
+  const { models, isLoading: isModelsLoading, error: modelsError } = useModels();
   const { thread, isMock } = useThread();
   const { textInput } = usePromptInputController();
   const promptRootRef = useRef<HTMLDivElement | null>(null);
@@ -703,7 +703,11 @@ export function InputBox({
             <ModelSelectorTrigger asChild>
               <PromptInputButton>
                 <ModelSelectorName className="text-xs font-normal">
-                  {selectedModel?.display_name}
+                  {isModelsLoading
+                    ? "Loading..."
+                    : modelsError
+                      ? "Error"
+                      : selectedModel?.display_name ?? "Select model"}
                 </ModelSelectorName>
               </PromptInputButton>
             </ModelSelectorTrigger>

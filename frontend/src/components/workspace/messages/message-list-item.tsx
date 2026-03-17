@@ -39,10 +39,12 @@ export function MessageListItem({
   className,
   message,
   isLoading,
+  threadId,
 }: {
   className?: string;
   message: Message;
   isLoading?: boolean;
+  threadId?: string;
 }) {
   const isHuman = message.type === "human";
   return (
@@ -54,6 +56,7 @@ export function MessageListItem({
         className={isHuman ? "w-fit" : "w-full"}
         message={message}
         isLoading={isLoading}
+        threadId={threadId}
       />
       {!isLoading && (
         <MessageToolbar
@@ -111,14 +114,18 @@ function MessageContent_({
   className,
   message,
   isLoading = false,
+  threadId: threadIdProp,
 }: {
   className?: string;
   message: Message;
   isLoading?: boolean;
+  threadId?: string;
 }) {
   const rehypePlugins = useRehypeSplitWordsIntoSpans(isLoading);
   const isHuman = message.type === "human";
-  const { thread_id } = useParams<{ thread_id: string }>();
+  const { thread_id: threadIdFromParams } = useParams<{ thread_id: string }>();
+  // Use prop threadId if provided, otherwise fall back to URL params
+  const thread_id = threadIdProp ?? threadIdFromParams;
   const components = useMemo(
     () => ({
       img: (props: ImgHTMLAttributes<HTMLImageElement>) => (

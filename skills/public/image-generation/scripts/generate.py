@@ -89,6 +89,89 @@ def generate_image(
     else:
         raise Exception("Failed to generate image")
 
+def generate_image_vertex(
+    prompt_file: str,
+    reference_images: list[str],
+    output_file: str,
+    aspect_ratio: str = "16:9",
+) -> str:
+    # 1. 환경 변수 확인 (Vertex AI용 API Key도 동일하게 사용 가능하지만,
+    # 내부적으로는 PROJECT_ID와 LOCATION이 필수입니다)
+    project = os.getenv("VERTEX_API_PROJECT_ID")
+    location = os.getenv("VERTEX_API_LOCATION")
+
+    # Validate required environment variables
+    if not project or not location:
+        raise Exception(
+            "Missing required environment variables: VERTEX_API_PROJECT_ID and/or VERTEX_API_LOCATION. "
+            "Please ensure these are set in your .env file."
+        )
+
+    with open(prompt_file, "r") as f:
+        prompt = f.read()
+
+    # 2. Get API key for authentication
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise Exception("GEMINI_API_KEY environment variable is not set")
+
+    # Warning for reference images
+    if reference_images and len(reference_images) > 0:
+        print(f"Warning: {len(reference_images)} reference image(s) provided but will be ignored.")
+        print("Vertex AI Imagen 3 does not support reference images via this interface.")
+
+    # 3. Call Vertex AI Imagen API via REST
+    # Endpoint format: https://{location}-aiplatform.googleapis.com/v1/projects/{project}/locations/{location}/publishers/google/models/imagen-3.0-generate-001:predict
+    url = f"https://{location}-aiplatform.googleapis.com/v1/projects/{project}/locations/{location}/publishers/google/models/imagen-3.0-generate-001:predict"
+
+    headers = {
+        "x-goog-api-key": api_key,
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "instances": [
+            {
+                "prompt": prompt
+            }
+        ],
+        "parameters": {
+            "sampleCount": 1,
+            "aspectRatio": aspect_ratio
+        }
+    }
+
+    response = requests.post(url, headers=headers, json=payload)
+    response.raise_for_status()
+
+    # 4. Extract and save generated image
+    try:
+        result = response.json()
+
+        # Vertex AI Imagen returns predictions with bytesBase64Encoded
+        if "predictions" in result and len(result["predictions"]) > 0:
+            prediction = result["predictions"][0]
+
+            # Try different possible keys for the image data
+            img_base64 = None
+            if "bytesBase64Encoded" in prediction:
+                img_base64 = prediction["bytesBase64Encoded"]
+            elif "image" in prediction and "bytesBase64Encoded" in prediction["image"]:
+                img_base64 = prediction["image"]["bytesBase64Encoded"]
+            else:
+                raise Exception(f"Unexpected response format. Keys in prediction: {prediction.keys()}")
+
+            # Decode and save
+            with open(output_file, "wb") as f:
+                f.write(base64.b64decode(img_base64))
+            return f"Successfully generated image to {output_file} (Vertex AI)"
+        else:
+            raise Exception(f"No predictions in response. Response keys: {result.keys()}")
+
+    except (KeyError, IndexError) as e:
+        raise Exception(f"Failed to extract image from response: {e}. Response: {result}")
+    except Exception as e:
+        raise Exception(f"Failed to generate/save image: {e}")
 
 if __name__ == "__main__":
     import argparse
@@ -120,13 +203,23 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     try:
-        print(
-            generate_image(
+        langchain_google_mode = os.getenv("LANGCHAIN_GOOGLE_MODE", "genai")
+        if langchain_google_mode.lower() == "vertexai":
+            print(f"Using Vertex AI mode (LANGCHAIN_GOOGLE_MODE={langchain_google_mode})")
+            result = generate_image_vertex(
                 args.prompt_file,
                 args.reference_images,
                 args.output_file,
                 args.aspect_ratio,
             )
-        )
+        else:
+            print(f"Using Google AI Studio mode (LANGCHAIN_GOOGLE_MODE={langchain_google_mode})")
+            result = generate_image(
+                args.prompt_file,
+                args.reference_images,
+                args.output_file,
+                args.aspect_ratio,
+            )
+        print(result)
     except Exception as e:
         print(f"Error while generating image: {e}")

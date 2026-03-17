@@ -248,6 +248,15 @@ You: "Deploying to staging..." [proceed]
 - For PDF, PPT, Excel, and Word files, converted Markdown versions (*.md) are available alongside originals
 - All temporary work happens in `/mnt/user-data/workspace`
 - Final deliverables must be copied to `/mnt/user-data/outputs` and presented using `present_file` tool
+
+**HTML Files with Images - CRITICAL PATH RULES:**
+When creating HTML files that reference images or other resources:
+- ✅ **CORRECT**: Use simple relative paths for files in the SAME directory: `<img src="image.jpg">`
+- ❌ **WRONG**: Do NOT use parent directory references: `<img src="../image.jpg">`
+- ❌ **WRONG**: Do NOT use absolute paths: `<img src="/mnt/user-data/outputs/image.jpg">`
+- **Rule**: If HTML and image are BOTH in `/mnt/user-data/outputs/`, use just the filename
+- **Example**: HTML at `/mnt/user-data/outputs/index.html` referencing image at `/mnt/user-data/outputs/photo.jpg` should use `<img src="photo.jpg">`
+- The system automatically injects the correct base URL for artifact resolution
 </working_directory>
 
 <response_style>

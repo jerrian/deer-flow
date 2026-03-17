@@ -207,6 +207,11 @@ export interface Translations {
     failed: string;
   };
 
+  // Errors
+  errors: {
+    streamError: string;
+  };
+
   // Settings
   settings: {
     title: string;

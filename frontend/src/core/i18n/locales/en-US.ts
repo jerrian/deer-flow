@@ -270,6 +270,11 @@ export const enUS: Translations = {
     failed: "Subtask failed",
   },
 
+  // Errors
+  errors: {
+    streamError: "An error occurred during message streaming. Please try again.",
+  },
+
   // Settings
   settings: {
     title: "Settings",

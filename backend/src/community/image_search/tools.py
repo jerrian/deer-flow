@@ -82,15 +82,16 @@ def image_search_tool(
     type_image: str | None = None,
     layout: str | None = None,
 ) -> str:
-    """Search for images online. Use this tool BEFORE image generation to find reference images for characters, portraits, objects, scenes, or any content requiring visual accuracy.
+    """Search for images online to find reference images. This tool is for SEARCHING only, NOT for generating images.
 
-    **When to use:**
-    - Before generating character/portrait images: search for similar poses, expressions, styles
-    - Before generating specific objects/products: search for accurate visual references
-    - Before generating scenes/locations: search for architectural or environmental references
-    - Before generating fashion/clothing: search for style and detail references
+    **IMPORTANT: For image GENERATION requests, you MUST first read the image-generation skill:**
+    Read `/mnt/skills/public/image-generation/SKILL.md` to learn the proper workflow for generating images.
+    This tool can optionally be used to find reference images AFTER reading the skill.
 
-    The returned image URLs can be used as reference images in image generation to significantly improve quality.
+    **When to use this search tool:**
+    - To find reference images for poses, expressions, or styles
+    - To find visual references for objects, products, or scenes
+    - To find architectural or environmental references
 
     Args:
         query: Search keywords describing the images you want to find. Be specific for better results (e.g., "Japanese woman street photography 1990s" instead of just "woman").

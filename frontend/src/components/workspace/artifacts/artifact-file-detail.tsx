@@ -30,7 +30,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CodeEditor } from "@/components/workspace/code-editor";
 import { useArtifactContent } from "@/core/artifacts/hooks";
-import { urlOfArtifact } from "@/core/artifacts/utils";
+import { resolveArtifactURL, urlOfArtifact } from "@/core/artifacts/utils";
 import { useI18n } from "@/core/i18n/hooks";
 import { installSkill } from "@/core/skills/api";
 import { streamdownPlugins } from "@/core/streamdown";
@@ -241,6 +241,8 @@ export function ArtifactFileDetail({
             <ArtifactFilePreview
               content={displayContent}
               language={language ?? "text"}
+              threadId={threadId}
+              filepath={filepath}
             />
           )}
         {isCodeFile && viewMode === "code" && (
@@ -264,9 +266,13 @@ export function ArtifactFileDetail({
 export function ArtifactFilePreview({
   content,
   language,
+  threadId,
+  filepath,
 }: {
   content: string;
   language: string;
+  threadId?: string;
+  filepath?: string;
 }) {
   if (language === "markdown") {
     return (
@@ -282,11 +288,36 @@ export function ArtifactFilePreview({
     );
   }
   if (language === "html") {
+    // Inject <base> tag to resolve relative paths (images, css, etc.)
+    // This is needed because srcDoc doesn't go through the server's base tag injection
+    // Use the HTML file's directory as base URL for proper relative path resolution
+    let htmlWithBase = content;
+    if (threadId && filepath) {
+      // Extract directory from filepath (e.g., /mnt/user-data/outputs/index.html -> /mnt/user-data/outputs/)
+      const lastSlash = filepath.lastIndexOf("/");
+      const directory = lastSlash > 0 ? filepath.substring(0, lastSlash + 1) : filepath;
+      const baseUrl = resolveArtifactURL(directory, threadId);
+      const baseTag = `<base href="${baseUrl}">`;
+
+      // Insert base tag after <head> or at the start
+      const headMatch = htmlWithBase.match(/<head[^>]*>/i);
+      if (headMatch) {
+        const insertPos = (headMatch.index ?? 0) + headMatch[0].length;
+        htmlWithBase =
+          htmlWithBase.slice(0, insertPos) +
+          "\n  " +
+          baseTag +
+          htmlWithBase.slice(insertPos);
+      } else {
+        // No <head> tag, prepend base tag
+        htmlWithBase = baseTag + "\n" + htmlWithBase;
+      }
+    }
     return (
       <iframe
         className="size-full"
         title="Artifact preview"
-        srcDoc={content}
+        srcDoc={htmlWithBase}
         sandbox="allow-scripts allow-forms"
       />
     );

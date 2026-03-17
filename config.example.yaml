@@ -106,6 +106,43 @@ models:
   #       thinking:
   #         type: enabled
 
+  # Example: Local OpenAI-Compatible API Server
+  # Use this for locally hosted models with OpenAI-compatible endpoints
+  # Works with: vLLM, Ollama, LM Studio, LocalAI, Text Gen WebUI, etc.
+  # IMPORTANT: Check model name with `curl http://SERVER/v1/models`
+  # - name: local-model
+  #   display_name: Local LLM (Custom Server)
+  #   use: langchain_openai:ChatOpenAI
+  #   model: your-model-name  # MUST match server's model name exactly!
+  #   base_url: http://localhost:8000/v1  # Your local API endpoint
+  #   api_key: not-needed  # Use dummy key if server doesn't validate
+  #   max_tokens: 4096  # Output tokens (NOT total context length!)
+  #   temperature: 0.7
+  #   supports_vision: false
+  #   supports_thinking: false
+
+  # Example: vLLM Local Server
+  # Start: vllm serve mistralai/Mistral-7B-Instruct-v0.2 --port 8000
+  # - name: vllm-mistral
+  #   display_name: Mistral 7B (vLLM Local)
+  #   use: langchain_openai:ChatOpenAI
+  #   model: mistralai/Mistral-7B-Instruct-v0.2
+  #   base_url: http://localhost:8000/v1
+  #   api_key: token-abc123  # Optional, depends on server config
+  #   max_tokens: 8192
+  #   temperature: 0.7
+
+  # Example: Remote Private Server (IP address)
+  # For servers running on different machines in your network
+  # - name: remote-local-model
+  #   display_name: Remote Local LLM (121.126.238.18:8042)
+  #   use: langchain_openai:ChatOpenAI
+  #   model: default
+  #   base_url: http://121.126.238.18:8042/v1
+  #   api_key: $LOCAL_API_KEY  # Or dummy value
+  #   max_tokens: 8192
+  #   supports_vision: false
+
 # ============================================================================
 # Tool Groups Configuration
 # ============================================================================

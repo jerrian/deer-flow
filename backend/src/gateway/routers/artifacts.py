@@ -147,7 +147,46 @@ async def get_artifact(thread_id: str, path: str, request: Request) -> FileRespo
         return FileResponse(path=actual_path, filename=actual_path.name, media_type=mime_type, headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"})
 
     if mime_type and mime_type == "text/html":
-        return HTMLResponse(content=actual_path.read_text())
+        html_content = actual_path.read_text()
+
+        # Inject <base> tag to resolve relative paths in HTML
+        # Use the HTML file's directory as base URL for proper relative path resolution
+        # This allows same-folder references like <img src="image.jpg">
+        # and parent folder references like <img src="../uploads/image.jpg">
+        # IMPORTANT: Use absolute URL for srcDoc iframe compatibility
+        # Extract host from request headers for proper absolute URL construction
+        host = request.headers.get("host", "localhost:2026")
+        scheme = request.headers.get("x-forwarded-proto", "http")
+        # Extract directory from path (e.g., mnt/user-data/outputs/index.html -> mnt/user-data/outputs/)
+        last_slash = path.rfind("/")
+        directory = path[:last_slash + 1] if last_slash > 0 else path
+        base_url = f"{scheme}://{host}/api/threads/{thread_id}/artifacts/{directory}"
+
+        # Insert base tag after <head> or at the start if no <head>
+        html_lower = html_content.lower()
+        if "<head>" in html_lower:
+            # Find the position of <head> tag (case-insensitive)
+            head_pos = html_lower.find("<head>")
+            insert_pos = head_pos + len("<head>")
+            html_content = (
+                html_content[:insert_pos] +
+                f'\n  <base href="{base_url}">' +
+                html_content[insert_pos:]
+            )
+        elif "<html>" in html_lower:
+            # Find the position of <html> tag (case-insensitive)
+            html_pos = html_lower.find("<html>")
+            insert_pos = html_pos + len("<html>")
+            html_content = (
+                html_content[:insert_pos] +
+                f'\n<head>\n  <base href="{base_url}">\n</head>' +
+                html_content[insert_pos:]
+            )
+        else:
+            # No <html> or <head> tags, prepend at the start
+            html_content = f'<base href="{base_url}">\n' + html_content
+
+        return HTMLResponse(content=html_content)
 
     if mime_type and mime_type.startswith("text/"):
         return PlainTextResponse(content=actual_path.read_text(), media_type=mime_type)
@@ -155,4 +194,10 @@ async def get_artifact(thread_id: str, path: str, request: Request) -> FileRespo
     if is_text_file_by_content(actual_path):
         return PlainTextResponse(content=actual_path.read_text(), media_type=mime_type)
 
-    return Response(content=actual_path.read_bytes(), media_type=mime_type, headers={"Content-Disposition": f"inline; filename*=UTF-8''{encoded_filename}"})
+    # Use FileResponse for binary files to enable proper streaming
+    # This avoids loading entire file into memory and handles Content-Length correctly
+    return FileResponse(
+        path=actual_path,
+        media_type=mime_type,
+        headers={"Content-Disposition": f"inline; filename*=UTF-8''{encoded_filename}"}
+    )

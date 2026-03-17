@@ -21,6 +21,21 @@ class TitleMiddleware(AgentMiddleware[TitleMiddlewareState]):
 
     state_schema = TitleMiddlewareState
 
+    @staticmethod
+    def _extract_text(content) -> str:
+        """Extract plain text from message content (str or list of blocks)."""
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            parts = []
+            for block in content:
+                if isinstance(block, str):
+                    parts.append(block)
+                elif isinstance(block, dict) and block.get("type") == "text":
+                    parts.append(block.get("text", ""))
+            return "\n".join(parts) if parts else ""
+        return str(content)
+
     def _should_generate_title(self, state: TitleMiddlewareState) -> bool:
         """Check if we should generate a title for this thread."""
         config = get_title_config()
@@ -52,9 +67,9 @@ class TitleMiddleware(AgentMiddleware[TitleMiddlewareState]):
         user_msg_content = next((m.content for m in messages if m.type == "human"), "")
         assistant_msg_content = next((m.content for m in messages if m.type == "ai"), "")
 
-        # Ensure content is string (LangChain messages can have list content)
-        user_msg = str(user_msg_content) if user_msg_content else ""
-        assistant_msg = str(assistant_msg_content) if assistant_msg_content else ""
+        # Extract text from content (handles both string and list of content blocks)
+        user_msg = self._extract_text(user_msg_content) if user_msg_content else ""
+        assistant_msg = self._extract_text(assistant_msg_content) if assistant_msg_content else ""
 
         # Use a lightweight model to generate title
         model = create_chat_model(thinking_enabled=False)
@@ -67,8 +82,8 @@ class TitleMiddleware(AgentMiddleware[TitleMiddlewareState]):
 
         try:
             response = await model.ainvoke(prompt)
-            # Ensure response content is string
-            title_content = str(response.content) if response.content else ""
+            # Extract text from response content
+            title_content = self._extract_text(response.content) if response.content else ""
             title = title_content.strip().strip('"').strip("'")
             # Limit to max characters
             return title[: config.max_chars] if len(title) > config.max_chars else title

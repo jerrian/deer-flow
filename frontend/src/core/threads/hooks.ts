@@ -148,6 +148,18 @@ export function useThreadStream({
         updateSubtask({ id: e.task_id, latestMessage: e.message });
       }
     },
+    onError(error, run) {
+      console.error("Stream error occurred:", error, "Run:", run);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : typeof error === "string"
+            ? error
+            : "An unknown error occurred during streaming";
+      toast.error(t.errors.streamError || errorMessage);
+      // Clear optimistic messages on stream error
+      setOptimisticMessages([]);
+    },
     onFinish(state) {
       listeners.current.onFinish?.(state.values);
       void queryClient.invalidateQueries({ queryKey: ["threads", "search"] });
