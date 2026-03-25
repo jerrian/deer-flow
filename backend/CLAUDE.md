@@ -9,7 +9,7 @@ DeerFlow is a LangGraph-based AI super agent system with a full-stack architectu
 **Architecture**:
 - **LangGraph Server** (port 2024): Agent runtime and workflow execution
 - **Gateway API** (port 8001): REST API for models, MCP, skills, memory, artifacts, and uploads
-- **Frontend** (port 3000): Next.js web interface
+- **Frontend** (port 3042): Next.js web interface
 - **Nginx** (port 2026): Unified reverse proxy entry point
 - **Provisioner** (port 8002, optional in Docker dev): Started only when sandbox is configured for provisioner/Kubernetes mode
 
@@ -385,7 +385,7 @@ This starts all services and makes the application available at `http://localhos
 **Nginx routing**:
 - `/api/langgraph/*` → LangGraph Server (2024)
 - `/api/*` (other) → Gateway API (8001)
-- `/` (non-API) → Frontend (3000)
+- `/` (non-API) → Frontend (3042)
 
 ### Running Backend Services Separately
 

@@ -26,18 +26,31 @@ def web_search_tool(query: str) -> str:
     if config is not None and "max_results" in config.model_extra:
         max_results = config.model_extra.get("max_results")
 
-    client = _get_tavily_client()
-    res = client.search(query, max_results=max_results)
-    normalized_results = [
-        {
-            "title": result["title"],
-            "url": result["url"],
-            "snippet": result["content"],
-        }
-        for result in res["results"]
-    ]
-    json_results = json.dumps(normalized_results, indent=2, ensure_ascii=False)
-    return json_results
+    try:
+        client = _get_tavily_client()
+        res = client.search(query, max_results=max_results)
+
+        if not res or "results" not in res:
+            return "Error: No search results returned from Tavily API"
+
+        normalized_results = [
+            {
+                "title": result["title"],
+                "url": result["url"],
+                "snippet": result["content"],
+            }
+            for result in res["results"]
+        ]
+        json_results = json.dumps(normalized_results, indent=2, ensure_ascii=False)
+        return json_results
+    except Exception as e:
+        error_msg = str(e)
+        if "401" in error_msg or "unauthorized" in error_msg.lower():
+            return "Error: Tavily API authentication failed. Please check TAVILY_API_KEY configuration."
+        elif "api" in error_msg.lower() and "key" in error_msg.lower():
+            return "Error: Invalid Tavily API key. Please verify your API key is correct."
+        else:
+            return f"Error: Web search failed - {error_msg}"
 
 
 @tool("web_fetch", parse_docstring=True)

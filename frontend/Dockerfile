@@ -19,4 +19,4 @@ COPY frontend ./frontend
 RUN sh -c "cd /app/frontend && pnpm install --frozen-lockfile"
 
 # Expose Next.js dev server port
-EXPOSE 3000
+EXPOSE 3042

@@ -9,7 +9,8 @@ router = APIRouter(prefix="/api", tags=["models"])
 class ModelResponse(BaseModel):
     """Response model for model information."""
 
-    name: str = Field(..., description="Unique identifier for the model")
+    id: str = Field(..., description="Unique identifier for the model")
+    name: str = Field(..., description="Unique identifier for the model (same as id)")
     display_name: str | None = Field(None, description="Human-readable name")
     description: str | None = Field(None, description="Model description")
     supports_thinking: bool = Field(default=False, description="Whether model supports thinking mode")
@@ -60,6 +61,7 @@ async def list_models() -> ModelsListResponse:
     config = get_app_config()
     models = [
         ModelResponse(
+            id=model.name,
             name=model.name,
             display_name=model.display_name,
             description=model.description,
@@ -105,6 +107,7 @@ async def get_model(model_name: str) -> ModelResponse:
         raise HTTPException(status_code=404, detail=f"Model '{model_name}' not found")
 
     return ModelResponse(
+        id=model.name,
         name=model.name,
         display_name=model.display_name,
         description=model.description,

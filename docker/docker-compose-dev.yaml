@@ -3,7 +3,7 @@
 #
 # Services:
 #   - nginx: Reverse proxy (port 2026)
-#   - frontend: Frontend Next.js dev server (port 3000)
+#   - frontend: Frontend Next.js dev server (port 3042)
 #   - gateway: Backend Gateway API (port 8001)
 #   - langgraph: LangGraph server (port 2024)
 #   - provisioner (optional): Sandbox provisioner (creates Pods in host Kubernetes)
@@ -41,8 +41,6 @@ services:
       # Override K8S API server URL since kubeconfig uses 127.0.0.1
       # which is unreachable from inside the container
       - K8S_API_SERVER=https://host.docker.internal:26443
-    env_file:
-      - ../.env
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -112,7 +110,6 @@ services:
     command: sh -c "cd backend && uv run uvicorn src.gateway.app:app --host 0.0.0.0 --port 8001 --reload --reload-include='*.yaml .env' > /app/logs/gateway.log 2>&1"
     volumes:
       - ../backend/src:/app/backend/src
-      - ../backend/.env:/app/backend/.env
       - ../config.yaml:/app/config.yaml
       - ../skills:/app/skills
       - ../logs:/app/logs
@@ -129,6 +126,7 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - deer-flow-dev
+      - ${SCENARIO_A_INT_LLM_NETWORK}
     restart: unless-stopped
 
   # Backend - LangGraph Server
@@ -141,7 +139,6 @@ services:
     command: sh -c "cd backend && uv run langgraph dev --no-browser --allow-blocking --host 0.0.0.0 --port 2024 > /app/logs/langgraph.log 2>&1"
     volumes:
       - ../backend/src:/app/backend/src
-      - ../backend/.env:/app/backend/.env
       - ../config.yaml:/app/config.yaml
       - ../skills:/app/skills
       - ../logs:/app/logs
@@ -153,8 +150,12 @@ services:
       - CI=true
     env_file:
       - ../.env
+    extra_hosts:
+      # For Linux: map host.docker.internal to host gateway
+      - "host.docker.internal:host-gateway"
     networks:
       - deer-flow-dev
+      - ${SCENARIO_A_INT_LLM_NETWORK}
     restart: unless-stopped
 
 volumes: {}
@@ -165,3 +166,10 @@ networks:
     ipam:
       config:
         - subnet: 192.168.200.0/24
+
+  # External LLM network - connects to vLLM server container
+  # Allows DeerFlow services to communicate with LLM server on Docker internal network
+  # Connection persists across container restarts
+  llm42_hybrid_vllm_net:
+    external: true
+    name: ${SCENARIO_A_EXT_LLM_NETWORK}
