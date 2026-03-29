@@ -1,4 +1,5 @@
 import logging
+import os
 
 from langchain.chat_models import BaseChatModel
 
@@ -63,6 +64,10 @@ def create_chat_model(name: str | None = None, thinking_enabled: bool = False, *
 
     model_instance = model_class(**kwargs, **model_settings_from_config)
 
+    # Attach callbacks
+    existing_callbacks = model_instance.callbacks or []
+
+    # LangSmith tracing
     if is_tracing_enabled():
         try:
             from langchain_core.tracers.langchain import LangChainTracer
@@ -71,9 +76,23 @@ def create_chat_model(name: str | None = None, thinking_enabled: bool = False, *
             tracer = LangChainTracer(
                 project_name=tracing_config.project,
             )
-            existing_callbacks = model_instance.callbacks or []
-            model_instance.callbacks = [*existing_callbacks, tracer]
+            existing_callbacks.append(tracer)
             logger.debug(f"LangSmith tracing attached to model '{name}' (project='{tracing_config.project}')")
         except Exception as e:
             logger.warning(f"Failed to attach LangSmith tracing to model '{name}': {e}")
+
+    # Request logging (for debugging tools parameter)
+    if os.getenv("DEER_FLOW_LOG_API_REQUESTS", "").lower() in ("true", "1", "yes"):
+        try:
+            from src.utils.request_logger import RequestLoggerCallback
+
+            request_logger = RequestLoggerCallback()
+            existing_callbacks.append(request_logger)
+            logger.info(f"API request logging enabled for model '{name}'")
+        except Exception as e:
+            logger.warning(f"Failed to attach request logger to model '{name}': {e}")
+
+    if existing_callbacks:
+        model_instance.callbacks = existing_callbacks
+
     return model_instance

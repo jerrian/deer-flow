@@ -4,7 +4,32 @@
 #
 # Must be run from the repo root directory.
 
-set -e
+set -e      # 에러 발생 시 종료
+
+# API 요청 인터셉션을 설정하는 방법
+# 방법 1: LangChain 디버그 모드 (가장 간단)
+#   export LANGCHAIN_VERBOSE=true
+#   make dev
+#   - ✅ 코드 수정 불필요
+#   - ⚠️ tools 파라미터가 불완전하게 표시될 수 있음
+
+# 방법 2: 콜백 핸들러 (추천) ⭐
+#   export DEER_FLOW_LOG_API_REQUESTS=true
+#   export LOG_LEVEL=INFO
+#   make dev
+#   - ✅ 완전한 tools 파라미터 표시
+#   - ✅ 코드 수정 불필요 (환경 변수만)
+#   - ✅ 구조화된 JSON 출력
+#   - ✅ 자동 도구 이름 추출
+
+# 방법 3: HTTP 인터셉터 (가장 상세)
+#   export DEER_FLOW_INTERCEPT_HTTP=true
+#   make dev
+#   - ✅ 실제 HTTP 요청 body 캡처
+#   - ✅ 헤더, URL, 인증 정보 포함
+#   - ⚠️ 시작 코드 훅 추가 필요 (최소한의 수정) 
+export DEER_FLOW_LOG_API_REQUESTS=true
+export LOG_LEVEL=INFO
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
